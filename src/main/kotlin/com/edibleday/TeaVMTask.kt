@@ -16,22 +16,25 @@
 
 package com.edibleday
 
-import org.apache.maven.plugin.MojoExecutionException
+//import org.teavm.tooling.RuntimeCopyOperation
 import org.gradle.api.DefaultTask
+import org.gradle.api.GradleException
+import org.gradle.api.logging.Logging
 import org.gradle.api.plugins.JavaPluginConvention
 import org.gradle.api.tasks.SourceSet
 import org.gradle.api.tasks.TaskAction
-//import org.teavm.tooling.RuntimeCopyOperation
+import org.teavm.diagnostics.DefaultProblemTextConsumer
+import org.teavm.diagnostics.Problem
+import org.teavm.tooling.TeaVMTargetType
 import org.teavm.tooling.TeaVMTool
 import org.teavm.tooling.sources.DirectorySourceFileProvider
 import org.teavm.tooling.sources.JarSourceFileProvider
 import java.io.File
 import java.io.IOException
 import java.net.MalformedURLException
-import java.net.URL
 import java.net.URLClassLoader
-import java.util.*
 
+//FROM https://raw.githubusercontent.com/seeseemelk/teavm-gradle-plugin/master/src/main/kotlin/com/edibleday/TeaVMTask.kt
 open class TeaVMTask : DefaultTask() {
 
     var installDirectory: String = File(project.buildDir, "teavm").absolutePath
@@ -40,8 +43,10 @@ open class TeaVMTask : DefaultTask() {
     var copySources: Boolean = false
     var generateSourceMap: Boolean = false
     var minified: Boolean = true
+	var targetType: String = "javascript"
     //var runtime: RuntimeCopyOperation = RuntimeCopyOperation.SEPARATE
 
+    val gradleLog = Logging.getLogger(TeaVMTask::class.java)
     val log by lazy { TeaVMLoggerGlue(project.logger) }
 
     @TaskAction fun compTeaVM() {
@@ -57,7 +62,7 @@ open class TeaVMTask : DefaultTask() {
         } else throw TeaVMException("mainClassName not found!")
 
 
-        val addSrc = { f: File, tool: TeaVMTool ->
+		fun addSrc(f: File) {
             if (f.isFile) {
                 if (f.absolutePath.endsWith(".jar")) {
                     tool.addSourceFileProvider(JarSourceFileProvider(f))
@@ -77,13 +82,13 @@ open class TeaVMTask : DefaultTask() {
                 .sourceSets
                 .getByName(SourceSet.MAIN_SOURCE_SET_NAME)
                 .allSource
-                .srcDirs.forEach { addSrc(it, tool) }
+				.srcDirs.forEach(::addSrc)
 
         project
                 .configurations
                 .getByName("teavmsources")
                 .files
-                .forEach { addSrc(it, tool) }
+				.forEach(::addSrc)
 
         val cacheDirectory = File(project.buildDir, "teavm-cache")
         cacheDirectory.mkdirs()
@@ -93,45 +98,60 @@ open class TeaVMTask : DefaultTask() {
         tool.log = log
         tool.isSourceFilesCopied = copySources
         tool.isSourceMapsFileGenerated = generateSourceMap
+		tool.targetType = TeaVMTargetType.valueOf(targetType.toUpperCase());
 
         val classLoader = prepareClassLoader()
         try {
             tool.classLoader = classLoader
             tool.generate()
+
+			val problemProvider = tool.getProblemProvider();
+			if (problemProvider != null && !problemProvider.getProblems().isEmpty())
+			{
+				log.error("=== Problems ===");
+				for (problem in problemProvider.getProblems())
+				{
+					if (!problemProvider.getSevereProblems().contains(problem))
+						printProblem(problem);
+				}
+
+				log.error("=== Severe problems ===");
+				for (problem in problemProvider.getSevereProblems())
+					printProblem(problem);
+
+				throw GradleException("Build failed with errors");
+			}
         } finally {
             try {
                 classLoader.close()
-            } catch (ignored: IOException) {
+			} catch (e: IOException) {
+				throw GradleException("Failed to close classloader", e);
             }
         }
 
     }
 
+	private fun printProblem(problem: Problem)
+	{
+		val consumer = DefaultProblemTextConsumer();
+		problem.render(consumer);
+		val location = problem.getLocation().getSourceLocation();
+		val filePath = location.getFileName() + ":" + location.getLine();
+		log.error("[" + filePath + "]: " + consumer.getText());
+	}
 
     private fun prepareClassLoader(): URLClassLoader {
         try {
-            val urls = ArrayList<URL>()
-            val classpath = StringBuilder()
-            for (file in project.configurations.getByName("runtime").files) {
-                if (classpath.length > 0) {
-                    classpath.append(':')
-                }
-                classpath.append(file.path)
-                urls.add(file.toURI().toURL())
+			val urls = project.configurations.getByName("runtime").run {
+				val dependencies = files.map { it.toURI().toURL() }
+				val artifacts = allArtifacts.files.map { it.toURI().toURL() }
+				dependencies + artifacts
             }
+			gradleLog.info("Using classpath URLs: {}", urls)
 
-            if (classpath.length > 0) {
-                classpath.append(':')
-            }
-            classpath.append(File(project.buildDir, "classes/main").path)
-            urls.add(File(project.buildDir, "classes/main").toURI().toURL())
-            classpath.append(':')
-            classpath.append(File(project.buildDir, "resources/main").path)
-            urls.add(File(project.buildDir, "resources/main").toURI().toURL())
-
-            return URLClassLoader(urls.toArray<URL>(arrayOfNulls<URL>(urls.size)), javaClass.classLoader)
+			return URLClassLoader(urls.toTypedArray(), javaClass.classLoader)
         } catch (e: MalformedURLException) {
-            throw MojoExecutionException("Error gathering classpath information", e)
+			throw GradleException("Error gathering classpath information", e)
         }
 
     }
