@@ -21,7 +21,7 @@ import org.gradle.api.DefaultTask
 import org.gradle.api.plugins.JavaPluginConvention
 import org.gradle.api.tasks.SourceSet
 import org.gradle.api.tasks.TaskAction
-import org.teavm.tooling.RuntimeCopyOperation
+//import org.teavm.tooling.RuntimeCopyOperation
 import org.teavm.tooling.TeaVMTool
 import org.teavm.tooling.sources.DirectorySourceFileProvider
 import org.teavm.tooling.sources.JarSourceFileProvider
@@ -40,7 +40,7 @@ open class TeaVMTask : DefaultTask() {
     var copySources: Boolean = false
     var generateSourceMap: Boolean = false
     var minified: Boolean = true
-    var runtime: RuntimeCopyOperation = RuntimeCopyOperation.SEPARATE
+    //var runtime: RuntimeCopyOperation = RuntimeCopyOperation.SEPARATE
 
     val log by lazy { TeaVMLoggerGlue(project.logger) }
 
@@ -50,7 +50,7 @@ open class TeaVMTask : DefaultTask() {
 
         tool.targetDirectory = File(installDirectory)
         tool.targetFileName = targetFileName
-        tool.isMainPageIncluded = mainPageIncluded
+        //tool.isMainPageIncluded = mainPageIncluded
 
         if (project.hasProperty("mainClassName") && project.property("mainClassName") != null) {
             tool.mainClass = "${project.property("mainClassName")}"
@@ -88,7 +88,7 @@ open class TeaVMTask : DefaultTask() {
         val cacheDirectory = File(project.buildDir, "teavm-cache")
         cacheDirectory.mkdirs()
         tool.cacheDirectory = cacheDirectory
-        tool.runtime = runtime
+        //tool.runtime = runtime
         tool.isMinifying = minified
         tool.log = log
         tool.isSourceFilesCopied = copySources
