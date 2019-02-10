@@ -3,7 +3,7 @@
 About
 =====
 
-Forked rom com.edibleday.
+Forked from com.edibleday.
 
 This is Gradle plugin for compiling(transpiling) Java bytecode to JavaScript using [TeaVM](http://teavm.org/). Plugin uses TeaVMTool for compilation. Plugin is written in [Kotlin](http://kotlinlang.org/) and depends on `kotlin-stdlib`. Project that uses plugin will depend on `teavm-classlib`, `teavm-jso` and `teavm-jso-apis`. All dependencies can be acquired from Maven Central repo.
 
