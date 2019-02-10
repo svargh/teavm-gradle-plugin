@@ -1,7 +1,9 @@
-[![](https://jitpack.io/v/com.edibleday/teavm-gradle-plugin.svg)](https://jitpack.io/#com.edibleday/teavm-gradle-plugin)
+[![](https://jitpack.io/v/svargh/teavm-gradle-plugin.svg)](https://jitpack.io/#svargh/teavm-gradle-plugin)
 
 About
 =====
+
+Forked rom com.edibleday.
 
 This is Gradle plugin for compiling(transpiling) Java bytecode to JavaScript using [TeaVM](http://teavm.org/). Plugin uses TeaVMTool for compilation. Plugin is written in [Kotlin](http://kotlinlang.org/) and depends on `kotlin-stdlib`. Project that uses plugin will depend on `teavm-classlib`, `teavm-jso` and `teavm-jso-apis`. All dependencies can be acquired from Maven Central repo.
 
@@ -19,13 +21,13 @@ buildscript {
     }
 
     dependencies {
-        classpath 'com.edibleday:teavm-gradle-plugin:VERSION'
+        classpath 'svargh:teavm-gradle-plugin:VERSION'
     }
 }
 ```
-Replace VERSION with actual version of plugin. See [releases](https://github.com/edibleday/teavm-gradle-plugin/releases) for version list.
+Replace VERSION with actual version of plugin. See [releases](https://github.com/svargh/teavm-gradle-plugin/releases) for version list.
 
-You can also use git commit hash as version. Check [JitPack](https://jitpack.io/#com.edibleday/teavm-gradle-plugin) for list of hashes and build status.
+You can also use git commit hash as version. Check [JitPack](https://jitpack.io/#svargh/teavm-gradle-plugin) for list of hashes and build status.
 
 Apply plugin to project:
 ```
