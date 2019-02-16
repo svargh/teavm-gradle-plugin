@@ -44,6 +44,7 @@ open class TeaVMTask : DefaultTask() {
     var generateSourceMap: Boolean = false
     var minified: Boolean = true
 	var targetType: String = "javascript"
+    var debugInformationGenerated = true
     //var runtime: RuntimeCopyOperation = RuntimeCopyOperation.SEPARATE
 
     val gradleLog = Logging.getLogger(TeaVMTask::class.java)
@@ -96,6 +97,7 @@ open class TeaVMTask : DefaultTask() {
         //tool.runtime = runtime
         tool.isMinifying = minified
         tool.log = log
+        tool.setDebugInformationGenerated(debugInformationGenerated)
         tool.isSourceFilesCopied = copySources
         tool.isSourceMapsFileGenerated = generateSourceMap
 		tool.targetType = TeaVMTargetType.valueOf(targetType.toUpperCase());
