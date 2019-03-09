@@ -43,14 +43,15 @@ open class TeaVMTask : DefaultTask() {
     var copySources: Boolean = false
     var generateSourceMap: Boolean = false
     var minified: Boolean = true
-	var targetType: String = "javascript"
+    var targetType: String = "javascript"
     var debugInformationGenerated = true
     //var runtime: RuntimeCopyOperation = RuntimeCopyOperation.SEPARATE
 
     val gradleLog = Logging.getLogger(TeaVMTask::class.java)
     val log by lazy { TeaVMLoggerGlue(project.logger) }
 
-    @TaskAction fun compTeaVM() {
+    @TaskAction
+    fun compTeaVM() {
         val tool = TeaVMTool()
         val project = project
 
@@ -63,7 +64,7 @@ open class TeaVMTask : DefaultTask() {
         } else throw TeaVMException("mainClassName not found!")
 
 
-		fun addSrc(f: File) {
+        fun addSrc(f: File) {
             if (f.isFile) {
                 if (f.absolutePath.endsWith(".jar")) {
                     tool.addSourceFileProvider(JarSourceFileProvider(f))
@@ -83,13 +84,13 @@ open class TeaVMTask : DefaultTask() {
                 .sourceSets
                 .getByName(SourceSet.MAIN_SOURCE_SET_NAME)
                 .allSource
-				.srcDirs.forEach(::addSrc)
+                .srcDirs.forEach(::addSrc)
 
         project
                 .configurations
                 .getByName("teavmsources")
                 .files
-				.forEach(::addSrc)
+                .forEach(::addSrc)
 
         val cacheDirectory = File(project.buildDir, "teavm-cache")
         cacheDirectory.mkdirs()
@@ -100,60 +101,74 @@ open class TeaVMTask : DefaultTask() {
         tool.setDebugInformationGenerated(debugInformationGenerated)
         tool.isSourceFilesCopied = copySources
         tool.isSourceMapsFileGenerated = generateSourceMap
-		tool.targetType = TeaVMTargetType.valueOf(targetType.toUpperCase());
+        tool.targetType = TeaVMTargetType.valueOf(targetType.toUpperCase());
 
         val classLoader = prepareClassLoader()
         try {
             tool.classLoader = classLoader
             tool.generate()
 
-			val problemProvider = tool.getProblemProvider();
-			if (problemProvider != null && !problemProvider.getProblems().isEmpty())
-			{
-				log.error("=== Problems ===");
-				for (problem in problemProvider.getProblems())
-				{
-					if (!problemProvider.getSevereProblems().contains(problem))
-						printProblem(problem);
-				}
+            val problemProvider = tool.getProblemProvider();
+            if (problemProvider != null && !problemProvider.getProblems().isEmpty()) {
+                log.error("=== Problems ===");
+                for (problem in problemProvider.getProblems()) {
+                    if (!problemProvider.getSevereProblems().contains(problem))
+                        printProblem(problem);
+                }
 
-				log.error("=== Severe problems ===");
-				for (problem in problemProvider.getSevereProblems())
-					printProblem(problem);
+                log.error("=== Severe problems ===");
+                for (problem in problemProvider.getSevereProblems())
+                    printProblem(problem);
 
-				throw GradleException("Build failed with errors");
-			}
+                throw GradleException("Build failed with errors");
+            }
         } finally {
             try {
                 classLoader.close()
-			} catch (e: IOException) {
-				throw GradleException("Failed to close classloader", e);
+            } catch (e: IOException) {
+                throw GradleException("Failed to close classloader", e);
             }
         }
 
     }
 
-	private fun printProblem(problem: Problem)
-	{
-		val consumer = DefaultProblemTextConsumer();
-		problem.render(consumer);
-		val location = problem.getLocation().getSourceLocation();
-		val filePath = location.getFileName() + ":" + location.getLine();
-		log.error("[" + filePath + "]: " + consumer.getText());
-	}
+    private fun printProblem(problem: Problem) {
+        val consumer = DefaultProblemTextConsumer();
+        problem.render(consumer);
+        val location = problem.getLocation().getSourceLocation();
+        val filePath = "" + location.getFileName() + ":" + location.getLine()
+        try {
+            log.error("[" + filePath + "]: " + consumer.getText());
+        } catch (e: Throwable) {
+            try {
+                log.error(consumer.getText())
+            } catch (e: Throwable) {
+            }
+            try {
+                log.error("" + problem.location)
+            } catch (e: Throwable) {
+            }
+            try {
+                log.error(consumer.getText())
+            } catch (e: Throwable) {
+            }
+            throw GradleException("Error printing problem", e)
+        }
+
+    }
 
     private fun prepareClassLoader(): URLClassLoader {
         try {
-			val urls = project.configurations.getByName("runtime").run {
-				val dependencies = files.map { it.toURI().toURL() }
-				val artifacts = allArtifacts.files.map { it.toURI().toURL() }
-				dependencies + artifacts
+            val urls = project.configurations.getByName("runtime").run {
+                val dependencies = files.map { it.toURI().toURL() }
+                val artifacts = allArtifacts.files.map { it.toURI().toURL() }
+                dependencies + artifacts
             }
-			gradleLog.info("Using classpath URLs: {}", urls)
+            gradleLog.info("Using classpath URLs: {}", urls)
 
-			return URLClassLoader(urls.toTypedArray(), javaClass.classLoader)
+            return URLClassLoader(urls.toTypedArray(), javaClass.classLoader)
         } catch (e: MalformedURLException) {
-			throw GradleException("Error gathering classpath information", e)
+            throw GradleException("Error gathering classpath information", e)
         }
 
     }
