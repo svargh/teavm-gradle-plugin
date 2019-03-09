@@ -135,9 +135,9 @@ open class TeaVMTask : DefaultTask() {
     private fun printProblem(problem: Problem) {
         val consumer = DefaultProblemTextConsumer();
         problem.render(consumer);
-        val location = problem.getLocation().getSourceLocation();
 
         try {
+            val location = problem.getLocation().getSourceLocation();
             val filePath = "" + location.getFileName() + ":" + location.getLine()
             log.error("[" + filePath + "]: " + consumer.getText());
         } catch (e: Throwable) {
